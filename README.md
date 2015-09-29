@@ -1,6 +1,12 @@
 # check_couchbase 
 Icinga plugin to check couchbase cluster 
 <br><br>
+## Requirements
+The package jq is needed to parse the responses of the api<br>
+<br>
+For Example:<br>
+ apt-get install jq
+<br><br>
 ## Parameters
     -cc / --check-cluster   Checks the connection between this node and the others (-w = warninig hosts down / -c = critical hosts down) <br>
     -cn / --check-node      Checks this node which different performace data (-c and -w not in use) <br>
