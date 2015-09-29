@@ -1,0 +1,152 @@
+#!/bin/bash
+#### HEADER START
+# Creator: Mathias Scherer
+# Create Date: 2015-09-29
+#### HEADER END
+
+
+#### FUNCTIONS START
+function check_cluster {
+	COUNTER=0
+	HEALTHY=0
+	FAILED=0
+
+	CURL=$(curl -s -X GET -u $USER:$PASSWORD http://$HOST:$PORT/pools/default/serverGroups)
+	for KEY in $(echo $CURL | jq -r ".groups[0].nodes | keys | .[]"); do
+		COUNTER=$(($COUNTER+1))
+
+		NODE=$(echo $CURL | jq -r ".groups[0].nodes[$KEY]")
+		STATE=$(echo $NODE | jq -r ".status")
+
+		if [[ $STATE -eq "healthy" ]]; then
+			HEALTHY=$(($HEALTHY+1))
+		elif [[ $STATE -eq "" ]]; then
+			FAILED=$(($FAILED+1))
+		fi
+	done
+
+	if [[ $FAILED > $WARNING ]]; then
+		NAGIOS_STATE="WARNING"
+		NAGIOS_EXIT=1
+	elif [[ $FAILED > $CRITICAL ]]; then
+		NAGIOS_STATE="CRITICAL"
+		NAGIOS_EXIT=2
+	else
+		NAGIOS_STATE="OK"
+		NAGIOS_EXIT=0
+	fi
+
+	echo "$NAGIOS_STATE - $HEALTHY of $COUNTER healthy|FAILED=$FAILED;$WARNING;$CRITICAL;; HEALTHY=$HEALTHY;;;;"
+	exit $NAGIOS_EXIT
+}
+
+function check_node {
+	CURL=$(curl -s -X GET -u $USER:$PASSWORD http://$HOST:$PORT/pools/nodes)
+	
+	for KEY in $(echo $CURL | jq -r ".nodes | keys | .[]"); do
+		NODE=$(echo $CURL | jq -r ".nodes[$KEY]")
+		HOSTNAME=$(echo $NODE | jq -r ".hostname")
+
+		HOSTNAME=${HOSTNAME:0:$(($(expr index "$HOSTNAME" :) - 1))}
+
+		if [[ "$HOSTNAME" == "$HOST" ]]; then
+			RAM_FREE=$(echo $NODE | jq -r ".memoryFree")
+			RAM_TOTAL=$(echo $NODE | jq -r ".memoryTotal")
+			SWAP_USED=$(echo $NODE | jq -r ".systemStats.swap_used")"B"
+			SWAP_TOTAL=$(echo $NODE | jq -r ".systemStats.swap_total")
+			CPU_UTIL=$(echo $NODE | jq -r ".systemStats.cpu_utilization_rate")"%"
+			CURR_ITEMS=$(echo $NODE | jq -r ".interestingStats.curr_items")
+			UPTIME=$(echo $NODE | jq -r ".uptime")"s"
+			STATE=$(echo $NODE | jq -r ".status")
+		fi
+	done
+	
+	if [[ $STATE -eq "healthy" ]]; then
+		NAGIOS_STATE="OK"
+		NAGIOS_EXIT=0
+	elif [[ $STATE -eq "" ]]; then
+		NAGIOS_STATE="CRITICAL"
+		NAGIOS_EXIT=2
+	else 
+		NAGIOS_STATE="UNKNOWN"
+		NAGIOS_EXIT=3
+	fi
+
+	RAM_USED=$(($RAM_TOTAL-$RAM_FREE))"B"
+
+	echo "$NAGIOS_STATE - host $STATE |RAM=$RAM_USED;;;0;$RAM_TOTAL CPU=$CPU_UTIL;;;0;100 SWAP=$SWAP_USED;;;0;$SWAP_TOTAL CurrentItems=$CURR_ITEMS;;;; Uptime=$UPTIME;;;; "
+	exit $NAGIOS_EXIT
+}
+
+function usage {
+	echo "usage: $(basename "$0") -cc/-cn -u -p -P -h [-w] [-c]"
+	echo ""
+	echo "where:"
+	echo "      -cc / --check-cluster   Checks the connection between this node and the others (-w = warninig hosts down / -c = critical hosts down)"
+	echo "      -cn / --check-node      Checks this node which different performace data (-c and -w not in use)"
+	echo "      -u / --user             Login username"
+	echo "      -p / --passsword        Login password"
+	echo "      -P / --port             API port"
+	echo "      -h / --host             IP address"
+	echo "      -w / --warning          Warning value (only with --check-cluster in use) default: 0"
+	echo "      -c / --critical         Critical value (only with --check-clsuter in use) default: 0"
+
+	exit 0
+}
+#### FUNCTINOS END
+
+#### DEFAULT VALUES START
+WARNING=0
+CRITICAL=0
+#### DEFAULT VALUES END
+
+#### MAIN START
+if [[ $# -eq 0 ]]; then
+	usage
+else
+	while [[ $# > 1 ]]; do
+		key=$1
+		shift
+		case $key in
+			-cc|--check-cluster)
+				FUNC="check_cluster"
+			        ;;
+			-cn|--check--node)
+				FUNC="check_node"
+				;;
+			-u|--user) 
+			        USER="$1"
+				shift
+			        ;;
+			-p|--password)
+				PASSWORD="$1"
+				shift
+				;;
+			-P|--port)
+				PORT="$1"
+				shift
+				;;
+			-h|--host)
+				HOST="$1"
+				shift
+				;;
+			-w|--warning)
+				WARNING="$1"
+				shift
+				;;
+			-c|--critical)
+				CRITICAL="$1"
+				shift
+				;;
+			--help)
+				usage
+				;;
+			*)
+			        usage
+			        ;;
+		esac
+	done
+fi
+
+eval $FUNC
+#### MAIN END
