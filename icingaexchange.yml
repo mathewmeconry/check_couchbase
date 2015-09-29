@@ -1,0 +1,18 @@
+name: check_couchbase
+description: "file:///README.md"
+url: "https://github.com/mathewmeconry/check_couchbase"
+tags: Statistic
+vendor: Linux
+target: Operating System
+type: Plugin
+license: MIT
+releases: 
+  - 
+    name: 1.0
+    description: "1.0 Release"
+    files: 
+      - 
+        name: check_couchbase
+        url: "file:///check_couchbase"
+        description: "First release"
+        checksum: ba6aba3f7116d132c508dec8d39fa4e0
