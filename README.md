@@ -23,3 +23,6 @@ For Example:<br>
 
 ### check-node (-cn)<br>
     Returns state,ram used, cpu utilization, swap used, current items and uptime as performance data 
+    
+## Feature requests
+Please send feature requests to scherer.mat@gmail.com
