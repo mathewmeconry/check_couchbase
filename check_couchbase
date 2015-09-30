@@ -9,6 +9,7 @@
 function check_cluster {
 	COUNTER=0
 	HEALTHY=0
+	WARMUP=0
 	FAILED=0
 
 	CURL=$(curl -s -X GET -u $USER:$PASSWORD http://$HOST:$PORT/pools/default/serverGroups)
@@ -18,25 +19,29 @@ function check_cluster {
 		NODE=$(echo $CURL | jq -r ".groups[0].nodes[$KEY]")
 		STATE=$(echo $NODE | jq -r ".status")
 
-		if [[ $STATE -eq "healthy" ]]; then
+		if [[ $STATE == "healthy" ]]; then
 			HEALTHY=$(($HEALTHY+1))
+		elif [[ $STATE == "warmup" ]]; then
+			WARMUP=$(($WARMUP+1))
+			NAGIOS_STATE="WARNING"
+			NAGIOS_EXIT=1
 		elif [[ $STATE -eq "" ]]; then
 			FAILED=$(($FAILED+1))
 		fi
 	done
 
-	if [[ $FAILED > $WARNING ]]; then
-		NAGIOS_STATE="WARNING"
-		NAGIOS_EXIT=1
-	elif [[ $FAILED > $CRITICAL ]]; then
+	if [[ $FAILED > $CRITICAL ]]; then
 		NAGIOS_STATE="CRITICAL"
 		NAGIOS_EXIT=2
-	else
+	elif [[ $FAILED > $WARNING ]]; then
+		NAGIOS_STATE="WARNING"
+		NAGIOS_EXIT=1
+	elif [[ $WARMUP == 0 ]]; then
 		NAGIOS_STATE="OK"
 		NAGIOS_EXIT=0
 	fi
 
-	echo "$NAGIOS_STATE - $HEALTHY of $COUNTER healthy|FAILED=$FAILED;$WARNING;$CRITICAL;; HEALTHY=$HEALTHY;;;;"
+	echo "$NAGIOS_STATE - $HEALTHY of $COUNTER healthy|FAILED=$FAILED;$WARNING;$CRITICAL;; WARMUP=$WARMUP;;;; HEALTHY=$HEALTHY;;;;"
 	exit $NAGIOS_EXIT
 }
 
@@ -61,9 +66,12 @@ function check_node {
 		fi
 	done
 	
-	if [[ $STATE -eq "healthy" ]]; then
+	if [[ $STATE == "healthy" ]]; then
 		NAGIOS_STATE="OK"
 		NAGIOS_EXIT=0
+	elif [[ $STATE == "warmup" ]]; then
+		NAGIOS_STATE="WARNING"
+		NAGIOS_EXIT=1
 	elif [[ $STATE -eq "" ]]; then
 		NAGIOS_STATE="CRITICAL"
 		NAGIOS_EXIT=2
