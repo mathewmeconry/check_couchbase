@@ -15,4 +15,4 @@ releases:
         name: check_couchbase
         url: "file:///check_couchbase"
         description: "First release"
-        checksum: ba6aba3f7116d132c508dec8d39fa4e0
+        checksum: e3ffa27d263c1a06bd2763671375510e
