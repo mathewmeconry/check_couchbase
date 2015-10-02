@@ -16,3 +16,12 @@ releases:
         url: "file:///check_couchbase"
         description: "First release"
         checksum: e3ffa27d263c1a06bd2763671375510e
+  -
+    name: 1.1
+    description: "1.1 Bugfixes Major"
+    files: 
+      - 
+        name: check_couchbase
+        url: "file:///check_couchbase"
+        description: "Fix bugs (healthy is also in unhealthy -.-' )"
+        checksum: 8df57cf844471f3e4fb321ea4df846e7
