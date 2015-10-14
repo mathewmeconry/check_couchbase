@@ -25,4 +25,4 @@ For Example:<br>
     Returns state,ram used, cpu utilization, swap used, current items and uptime as performance data 
     
 ## Feature requests
-Please send feature requests to scherer.mat@gmail.com
+Please send feature requests to this repository
