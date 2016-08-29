@@ -25,3 +25,12 @@ releases:
         url: "file:///check_couchbase"
         description: "Fix bugs (healthy is also in unhealthy -.-' )"
         checksum: 8df57cf844471f3e4fb321ea4df846e7
+  -
+    name: 1.2
+    description: "1.2 checks now clusterMembership too"
+    files: 
+      - 
+        name: check_couchbase
+        url: "file:///check_couchbase"
+        description: "checks now clusterMembership too to detect autofailover"
+        checksum: e2994b172726109beefa5633c0c37b21
