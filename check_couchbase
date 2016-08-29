@@ -63,6 +63,7 @@ function check_node {
 			CURR_ITEMS=$(echo $NODE | jq -r ".interestingStats.curr_items")
 			UPTIME=$(echo $NODE | jq -r ".uptime")"s"
 			STATE=$(echo $NODE | jq -r ".status")
+			CLUSTER_MEMBERSHIP=$(echo $NODE | jq -r ".clusterMembership")
 		fi
 	done
 	
@@ -80,9 +81,14 @@ function check_node {
 		NAGIOS_EXIT=3
 	fi
 
+	if [[ $CLUSTER_MEMBERSHIP -ne "active" ]]; then
+		NAGIOS_STATE="CRITICAL"
+		NAGIOS_EXIT=2
+	fi
+
 	RAM_USED=$(($RAM_TOTAL-$RAM_FREE))"B"
 
-	echo "$NAGIOS_STATE - host $STATE |RAM=$RAM_USED;;;0;$RAM_TOTAL CPU=$CPU_UTIL;;;0;100 SWAP=$SWAP_USED;;;0;$SWAP_TOTAL CurrentItems=$CURR_ITEMS;;;; Uptime=$UPTIME;;;; "
+	echo "$NAGIOS_STATE - host $STATE - clusterMembership $CLUSTER_MEMBERSHIP |RAM=$RAM_USED;;;0;$RAM_TOTAL CPU=$CPU_UTIL;;;0;100 SWAP=$SWAP_USED;;;0;$SWAP_TOTAL CurrentItems=$CURR_ITEMS;;;; Uptime=$UPTIME;;;; "
 	exit $NAGIOS_EXIT
 }
 
