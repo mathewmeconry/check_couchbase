@@ -81,7 +81,7 @@ function check_node {
 		NAGIOS_EXIT=3
 	fi
 
-	if [[ $CLUSTER_MEMBERSHIP -ne "active" ]]; then
+	if [[ $CLUSTER_MEMBERSHIP -eq "inactiveFailed" ]]; then
 		NAGIOS_STATE="CRITICAL"
 		NAGIOS_EXIT=2
 	fi
