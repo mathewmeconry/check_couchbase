@@ -34,3 +34,12 @@ releases:
         url: "file:///check_couchbase"
         description: "checks now clusterMembership too to detect autofailover"
         checksum: e2994b172726109beefa5633c0c37b21
+  -
+    name: 1.3
+    description: "1.3 fix bug in clusterMembership test"
+    files: 
+      - 
+        name: check_couchbase
+        url: "file:///check_couchbase"
+        description: "fix bug in clusterMembership test"
+        checksum: 5368f5158c4ef7ecb33c18d2058c5ef1
