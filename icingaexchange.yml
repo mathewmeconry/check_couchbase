@@ -43,3 +43,12 @@ releases:
         url: "file:///check_couchbase"
         description: "fix bug in clusterMembership test"
         checksum: 5368f5158c4ef7ecb33c18d2058c5ef1
+  -
+    name: 1.4
+    description: "1.4 fix if bug in clusterMembership test"
+    files: 
+      - 
+        name: check_couchbase
+        url: "file:///check_couchbase"
+        description: "fix bug in clusterMembership test"
+        checksum: 7ddfdc2cba32f2ca00cc5452d6362482
