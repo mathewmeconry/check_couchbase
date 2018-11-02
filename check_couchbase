@@ -13,59 +13,74 @@ function check_cluster {
 	FAILED=0
 
 	CURL=$(curl -s -X GET -u $USER:$PASSWORD http://$HOST:$PORT/pools/default/serverGroups)
-	for KEY in $(echo $CURL | jq -r ".groups[0].nodes | keys | .[]"); do
-		COUNTER=$(($COUNTER+1))
+        if [[ -z "$CURL" ]];then
+            echo "There is no content when curl Couchbase API"
+            NAGIOS_STATE="UNKNOWN"
+            NAGIOS_EXIT=3
+            FAILED=1
+        else
+	    for KEY in $(echo $CURL | jq -r ".groups[0].nodes | keys | .[]"); do
+	    	COUNTER=$(($COUNTER+1))
 
-		NODE=$(echo $CURL | jq -r ".groups[0].nodes[$KEY]")
-		STATE=$(echo $NODE | jq -r ".status")
+	    	NODE=$(echo $CURL | jq -r ".groups[0].nodes[$KEY]")
+	    	STATE=$(echo $NODE | jq -r ".status")
 
-		if [[ $STATE == "healthy" ]]; then
-			HEALTHY=$(($HEALTHY+1))
-		elif [[ $STATE == "warmup" ]]; then
-			WARMUP=$(($WARMUP+1))
-			NAGIOS_STATE="WARNING"
-			NAGIOS_EXIT=1
-		elif [[ $STATE -eq "" ]]; then
-			FAILED=$(($FAILED+1))
-		fi
-	done
+	    	if [[ $STATE == "healthy" ]]; then
+	    		HEALTHY=$(($HEALTHY+1))
+	    	elif [[ $STATE == "warmup" ]]; then
+	    		WARMUP=$(($WARMUP+1))
+	    		NAGIOS_STATE="WARNING"
+	    		NAGIOS_EXIT=1
+	    	elif [[ $STATE -eq "" ]]; then
+	    		FAILED=$(($FAILED+1))
+	    	fi
+	    done
+        fi
+	    if [[ $FAILED > $CRITICAL ]]; then
+	    	NAGIOS_STATE="CRITICAL"
+	    	NAGIOS_EXIT=2
+	    elif [[ $FAILED > $WARNING ]]; then
+	    	NAGIOS_STATE="WARNING"
+	    	NAGIOS_EXIT=1
+	    elif [[ $WARMUP == 0 ]]; then
+	    	NAGIOS_STATE="OK"
+	    	NAGIOS_EXIT=0
+	    fi
 
-	if [[ $FAILED > $CRITICAL ]]; then
-		NAGIOS_STATE="CRITICAL"
-		NAGIOS_EXIT=2
-	elif [[ $FAILED > $WARNING ]]; then
-		NAGIOS_STATE="WARNING"
-		NAGIOS_EXIT=1
-	elif [[ $WARMUP == 0 ]]; then
-		NAGIOS_STATE="OK"
-		NAGIOS_EXIT=0
-	fi
-
-	echo "$NAGIOS_STATE - $HEALTHY of $COUNTER healthy|FAILED=$FAILED;$WARNING;$CRITICAL;; WARMUP=$WARMUP;;;; HEALTHY=$HEALTHY;;;;"
-	exit $NAGIOS_EXIT
+	    echo "$NAGIOS_STATE - $HEALTHY of $COUNTER healthy|FAILED=$FAILED;$WARNING;$CRITICAL;; WARMUP=$WARMUP;;;; HEALTHY=$HEALTHY;;;;"
+	    exit $NAGIOS_EXIT
+        
 }
 
 function check_node {
 	CURL=$(curl -s -X GET -u $USER:$PASSWORD http://$HOST:$PORT/pools/nodes)
-	
-	for KEY in $(echo $CURL | jq -r ".nodes | keys | .[]"); do
-		NODE=$(echo $CURL | jq -r ".nodes[$KEY]")
-		HOSTNAME=$(echo $NODE | jq -r ".hostname")
 
-		HOSTNAME=${HOSTNAME:0:$(($(expr index "$HOSTNAME" :) - 1))}
+        if [[ -z "$CURL" ]];then
+            echo "There is no content when curl Couchbase API"
+            NAGIOS_STATE="UNKNOWN"
+            NAGIOS_EXIT=3
+            FAILED=1
+        else
+	    for KEY in $(echo $CURL | jq -r ".nodes | keys | .[]"); do
+	    	NODE=$(echo $CURL | jq -r ".nodes[$KEY]")
+	    	HOSTNAME=$(echo $NODE | jq -r ".hostname")
 
-		if [[ "$HOSTNAME" == "$HOST" ]]; then
-			RAM_FREE=$(echo $NODE | jq -r ".memoryFree")
-			RAM_TOTAL=$(echo $NODE | jq -r ".memoryTotal")
-			SWAP_USED=$(echo $NODE | jq -r ".systemStats.swap_used")"B"
-			SWAP_TOTAL=$(echo $NODE | jq -r ".systemStats.swap_total")
-			CPU_UTIL=$(echo $NODE | jq -r ".systemStats.cpu_utilization_rate")"%"
-			CURR_ITEMS=$(echo $NODE | jq -r ".interestingStats.curr_items")
-			UPTIME=$(echo $NODE | jq -r ".uptime")"s"
-			STATE=$(echo $NODE | jq -r ".status")
-			CLUSTER_MEMBERSHIP=$(echo $NODE | jq -r ".clusterMembership")
-		fi
-	done
+	    	HOSTNAME=${HOSTNAME:0:$(($(expr index "$HOSTNAME" :) - 1))}
+
+	    	if [[ "$HOSTNAME" == "$HOST" ]]; then
+	    		RAM_FREE=$(echo $NODE | jq -r ".memoryFree")
+	    		RAM_TOTAL=$(echo $NODE | jq -r ".memoryTotal")
+	    		SWAP_USED=$(echo $NODE | jq -r ".systemStats.swap_used")"B"
+	    		SWAP_TOTAL=$(echo $NODE | jq -r ".systemStats.swap_total")
+	    		CPU_UTIL=$(echo $NODE | jq -r ".systemStats.cpu_utilization_rate")"%"
+	    		CURR_ITEMS=$(echo $NODE | jq -r ".interestingStats.curr_items")
+	    		UPTIME=$(echo $NODE | jq -r ".uptime")"s"
+	    		STATE=$(echo $NODE | jq -r ".status")
+	    		CLUSTER_MEMBERSHIP=$(echo $NODE | jq -r ".clusterMembership")
+	    	fi
+	    done
+            RAM_USED=$(($RAM_TOTAL-$RAM_FREE))"B"
+        fi
 	
 	if [[ $STATE == "healthy" ]]; then
 		NAGIOS_STATE="OK"
@@ -85,8 +100,6 @@ function check_node {
 		NAGIOS_STATE="CRITICAL"
 		NAGIOS_EXIT=2
 	fi
-
-	RAM_USED=$(($RAM_TOTAL-$RAM_FREE))"B"
 
 	echo "$NAGIOS_STATE - host $STATE - clusterMembership $CLUSTER_MEMBERSHIP |RAM=$RAM_USED;;;0;$RAM_TOTAL CPU=$CPU_UTIL;;;0;100 SWAP=$SWAP_USED;;;0;$SWAP_TOTAL CurrentItems=$CURR_ITEMS;;;; Uptime=$UPTIME;;;; "
 	exit $NAGIOS_EXIT
